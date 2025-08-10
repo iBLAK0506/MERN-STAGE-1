@@ -1,26 +1,30 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  signInFailure,
+  signInStart,
+  signInSuccess,
+} from "../redux/user/userSlice";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({});
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.user);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.id]: e.target.value,
     });
-    setError(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
 
     try {
-      setLoading(true);
+      dispatch(signInStart());
 
       const res = await fetch("/api/auth/signin", {
         method: "POST",
@@ -30,26 +34,20 @@ export default function SignIn() {
         body: JSON.stringify(formData),
       });
 
-      // Check if response has body before parsing
-      let data = {};
+      // Read response text first to prevent JSON parse error
       const text = await res.text();
-      if (text) {
-        data = JSON.parse(text);
-      }
+      const data = text ? JSON.parse(text) : {};
 
-      console.log(data);
-
-      if (!res.ok || data.success === false) {
-        setError(data.message || "Invalid credentials, please try again.");
-        setLoading(false);
+      if (!res.ok) {
+        // If backend does not send message, fallback to "User not found"
+        dispatch(signInFailure(data.message || "User not found"));
         return;
       }
 
-      setLoading(false);
+      dispatch(signInSuccess(data));
       navigate("/"); // redirect after successful login
     } catch (err) {
-      setLoading(false);
-      setError(err.message || "Network error, please try again.");
+      dispatch(signInFailure(err.message));
     }
   };
 
@@ -64,6 +62,7 @@ export default function SignIn() {
           className="border p-3 rounded-lg bg-white"
           id="email"
           onChange={handleChange}
+          required
         />
         <input
           type="password"
@@ -71,6 +70,7 @@ export default function SignIn() {
           className="border p-3 rounded-lg bg-white"
           id="password"
           onChange={handleChange}
+          required
         />
         <button
           disabled={loading}
