@@ -2,50 +2,49 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function SignUp() {
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Handle input changes
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.id]: e.target.value,
     });
-    setError(null); // Clear error when user types
+    setError(null); // clear error when typing
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null); // reset error before submit
+    setLoading(true);
+    setError(null);
 
     try {
-      setLoading(true);
-
-      const res = await fetch("/api/auth/Signup", {
+      const res = await fetch("/api/auth/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData), // ✅ send full formData
       });
 
       const data = await res.json();
-      console.log(data);
 
-      // ✅ If backend says signup failed
-      if (!res.ok || data.success === false) {
-        setError(data.message || "Something went wrong, please try again.");
+      if (res.ok) {
         setLoading(false);
-        return;
+        navigate("/sign-in"); // ✅ redirect after success
+      } else {
+        setLoading(false);
+        setError(data.message || "Signup failed");
       }
-
-      // ✅ If signup success
-      setLoading(false);
-      navigate("/sign-in");
-      // You could redirect here
     } catch (err) {
       setLoading(false);
-      setError(err.message || "Network error, please try again.");
+      setError(err.message || "Network error");
     }
   };
 
@@ -56,23 +55,26 @@ export default function SignUp() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="text"
-          placeholder="username"
+          placeholder="Username"
           className="border p-3 rounded-lg bg-white"
           id="username"
+          value={formData.username}
           onChange={handleChange}
         />
         <input
           type="email"
-          placeholder="email"
+          placeholder="Email"
           className="border p-3 rounded-lg bg-white"
           id="email"
+          value={formData.email}
           onChange={handleChange}
         />
         <input
           type="password"
-          placeholder="password"
+          placeholder="Password"
           className="border p-3 rounded-lg bg-white"
           id="password"
+          value={formData.password}
           onChange={handleChange}
         />
         <button
@@ -85,12 +87,11 @@ export default function SignUp() {
 
       <div className="flex gap-2 mt-5">
         <p>Have an account?</p>
-        <Link to={"/sign-in"}>
+        <Link to="/sign-in">
           <span className="text-blue-700">Sign in</span>
         </Link>
       </div>
 
-      {/* ✅ This will now always show when error is set */}
       {error && <p className="text-red-500 mt-5">{error}</p>}
     </div>
   );
